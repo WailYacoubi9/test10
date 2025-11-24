@@ -1,0 +1,66 @@
+{
+    "realm": "projetcis",
+    "enabled": true,
+    "registrationAllowed": true,
+    "registrationEmailAsUsername": false,
+    "rememberMe": true,
+    "resetPasswordAllowed": true,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "sslRequired": "external",
+    "clients": [
+        {
+            "clientId": "webapp",
+            "name": "WebApp Client",
+            "description": "Client pour l'application web avec Standard Flow",
+            "enabled": true,
+            "clientAuthenticatorType": "client-secret",
+            "redirectUris": [
+                "http://localhost:3000/auth/callback",
+                "http://localhost:3000/*"
+            ],
+            "webOrigins": [
+                "http://localhost:3000"
+            ],
+            "attributes": {
+                "post.logout.redirect.uris": "http://localhost:3000/*",
+                "pkce.code.challenge.method": "S256"
+            },
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "serviceAccountsEnabled": false,
+            "publicClient": false,
+            "protocol": "openid-connect",
+            "fullScopeAllowed": true,
+            "defaultClientScopes": [
+                "web-origins",
+                "acr",
+                "profile",
+                "roles",
+                "email"
+            ],
+            "optionalClientScopes": [
+                "address",
+                "phone",
+                "offline_access",
+                "microprofile-jwt"
+            ]
+        }
+    ],
+    "roles": {
+        "realm": [
+            {
+                "name": "user",
+                "description": "Utilisateur standard"
+            },
+            {
+                "name": "admin",
+                "description": "Administrateur"
+            }
+        ]
+    },
+    "defaultRoles": [
+        "user"
+    ]
+}
