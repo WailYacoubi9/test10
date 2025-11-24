@@ -8,7 +8,7 @@
 docker pull quay.io/keycloak/keycloak
 ```
 
-### ▶1.2 Lancement du conteneur Keycloak (mode dev)
+### 1.2 Lancement du conteneur Keycloak (mode dev)
 
 #### 1.2.1 Création d'un volume pour keycloak:
 
