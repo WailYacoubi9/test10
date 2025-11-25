@@ -24,7 +24,7 @@ router.get('/login', (req, res) => {
         code_challenge_method: 'S256'
     });
 
-    console.log('🔄 Redirection vers Keycloak pour authentification');
+    console.log('Redirection vers Keycloak pour authentification');
     res.redirect(authUrl);
 });
 
@@ -35,10 +35,16 @@ router.get('/login', (req, res) => {
 router.get('/register', (req, res) => {
     const keycloakClient = req.app.locals.keycloakClient;
 
-    const codeVerifier = generators.codeVerifier();
+    // 1. PKCE : Génère un code_verifier aléatoire
+    const codeVerifier = generators.codeVerifier()
+        ;
+    // 2. PKCE : Crée le code_challenge (SHA256 du verifier)
     const codeChallenge = generators.codeChallenge(codeVerifier);
+
+    // 3. CSRF : Génère un state aléatoire
     const state = generators.state();
 
+    // Sauvegarde des valeurs PKCE et state en session pour la vérification ultérieure
     req.session.codeVerifier = codeVerifier;
     req.session.state = state;
 

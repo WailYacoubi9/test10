@@ -26,3 +26,8 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Certificates
+certs/
+*.pem
+*.key

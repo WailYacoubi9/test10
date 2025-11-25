@@ -3,6 +3,9 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const { initializeKeycloak } = require('./config/keycloak');
+const https = require('https');
+const fs = require('fs');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +25,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Mettre à true en production avec HTTPS
+        secure: true,
         httpOnly: true,
         maxAge: 3600000 // 1 heure
     }
@@ -69,15 +72,22 @@ async function start() {
             });
         });
 
-        // Démarrage du serveur
-        app.listen(PORT, () => {
-            console.log(`\n Serveur démarré sur http://localhost:${PORT}`);
+        // Lire les certificats
+        const httpsOptions = {
+            key: fs.readFileSync(path.join(__dirname, 'certs', 'localhost+2-key.pem')),
+            cert: fs.readFileSync(path.join(__dirname, 'certs', 'localhost+2.pem'))
+        };
+
+        // Création du serveur HTTPS
+        https.createServer(httpsOptions, app).listen(PORT, () => {
+            console.log(`\nServeur HTTPS démarré sur https://localhost:${PORT}`);
             console.log(`Configuration:`);
             console.log(`   - Keycloak: ${process.env.KEYCLOAK_URL}`);
             console.log(`   - Realm: ${process.env.REALM}`);
             console.log(`   - Client ID: ${process.env.CLIENT_ID}`);
             console.log(`   - Redirect URI: ${process.env.REDIRECT_URI}\n`);
         });
+
     } catch (error) {
         console.error('Erreur lors du démarrage:', error);
         process.exit(1);

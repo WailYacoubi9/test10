@@ -16,14 +16,14 @@
             "enabled": true,
             "clientAuthenticatorType": "client-secret",
             "redirectUris": [
-                "http://localhost:3000/auth/callback",
-                "http://localhost:3000/*"
+                "https://localhost:3000/auth/callback",
+                "https://localhost:3000/*"
             ],
             "webOrigins": [
-                "http://localhost:3000"
+                "https://localhost:3000"
             ],
             "attributes": {
-                "post.logout.redirect.uris": "http://localhost:3000/*",
+                "post.logout.redirect.uris": "https://localhost:3000/*",
                 "pkce.code.challenge.method": "S256"
             },
             "standardFlowEnabled": true,
