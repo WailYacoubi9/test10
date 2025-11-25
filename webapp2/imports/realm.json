@@ -8,6 +8,7 @@
     "loginWithEmailAllowed": true,
     "duplicateEmailsAllowed": false,
     "sslRequired": "external",
+    "accessTokenLifespan": 420,
     "clients": [
         {
             "clientId": "webapp",
