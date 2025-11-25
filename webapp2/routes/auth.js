@@ -1,5 +1,6 @@
 const express = require('express');
 const { generators } = require('openid-client');
+const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
 /**
@@ -10,7 +11,7 @@ router.get('/login', (req, res) => {
     const keycloakClient = req.app.locals.keycloakClient;
 
     const codeVerifier = generators.codeVerifier();
-    const codeChallenge = generators.codeChallenge(codeVerifier);
+    const codeChallenge = generators.codeChallenge(codeVerifier)
     const state = generators.state();
 
     // Sauvegarde des valeurs PKCE pour la vérification
@@ -132,12 +133,97 @@ router.get('/logout', (req, res) => {
         // Redirection vers le endpoint de logout Keycloak
         const logoutUrl = keycloakClient.endSessionUrl({
             id_token_hint: tokenSet?.id_token,
-            post_logout_redirect_uri: `http://localhost:${port}/`
+            post_logout_redirect_uri: `https://localhost:${port}/`
         });
 
         console.log('Déconnexion et redirection');
         res.redirect(logoutUrl);
     });
+});
+
+/**
+ * POST /auth/revoke
+ * Révocation manuelle des tokens (API endpoint)
+ * Utile pour révoquer depuis un appareil ou pour forcer la déconnexion
+ */
+router.post('/auth/revoke', requireAuth, async (req, res) => {
+    const keycloakClient = req.app.locals.keycloakClient;
+    const tokenSet = req.session.tokenSet;
+
+    try {
+        console.log('Révocation du token d\'accès...');
+
+        // Révoquer l'access_token
+        await keycloakClient.revoke(tokenSet.access_token, 'access_token');
+
+        console.log('Access token révoqué');
+
+        // Si un refresh_token existe, le révoquer aussi
+        if (tokenSet.refresh_token) {
+            console.log('Révocation du refresh token...');
+            await keycloakClient.revoke(tokenSet.refresh_token, 'refresh_token');
+            console.log('Refresh token révoqué');
+        }
+
+        // Détruire la session locale
+        req.session.destroy();
+
+        res.json({
+            success: true,
+            message: 'Tokens révoqués avec succès'
+        });
+    } catch (error) {
+        console.error('Erreur lors de la révocation des tokens:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /auth/revoke-and-logout
+ * Révocation + déconnexion complète (pour usage dans l'interface)
+ */
+router.get('/auth/revoke-and-logout', requireAuth, async (req, res) => {
+    const keycloakClient = req.app.locals.keycloakClient;
+    const tokenSet = req.session.tokenSet;
+    const port = process.env.PORT || 3000;
+
+    try {
+        console.log('Révocation des tokens avant déconnexion...');
+
+        // Révoquer les tokens
+        if (tokenSet.access_token) {
+            await keycloakClient.revoke(tokenSet.access_token, 'access_token');
+        }
+        if (tokenSet.refresh_token) {
+            await keycloakClient.revoke(tokenSet.refresh_token, 'refresh_token');
+        }
+
+        console.log('Tokens révoqués');
+
+        // Détruire la session
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Erreur lors de la destruction de session:', err);
+            }
+
+            // Redirection vers Keycloak logout
+            const logoutUrl = keycloakClient.endSessionUrl({
+                id_token_hint: tokenSet?.id_token,
+                post_logout_redirect_uri: `https://localhost:${port}/`
+            });
+
+            console.log('Déconnexion complète');
+            res.redirect(logoutUrl);
+        });
+    } catch (error) {
+        console.error('Erreur lors de la révocation:', error);
+        // Même en cas d'erreur, on déconnecte quand même
+        req.session.destroy();
+        res.redirect('/');
+    }
 });
 
 module.exports = router;
