@@ -158,19 +158,12 @@ router.post('/auth/revoke', requireAuth, async (req, res) => {
 
         console.log('Access token révoqué');
 
-        // Si un refresh_token existe, le révoquer aussi
-        if (tokenSet.refresh_token) {
-            console.log('Révocation du refresh token...');
-            await keycloakClient.revoke(tokenSet.refresh_token, 'refresh_token');
-            console.log('Refresh token révoqué');
-        }
-
         // Détruire la session locale
         req.session.destroy();
 
         res.json({
             success: true,
-            message: 'Tokens révoqués avec succès'
+            message: 'Access token révoqué avec succès'
         });
     } catch (error) {
         console.error('Erreur lors de la révocation des tokens:', error);

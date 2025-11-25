@@ -164,7 +164,7 @@
             <script>
                 // Fonction pour révoquer les tokens via l'API
                 async function revokeTokens() {
-                    if (!confirm('Êtes-vous sûr de vouloir révoquer vos tokens ?\n\nCela invalidera immédiatement votre session actuelle.')) {
+                    if (!confirm('Êtes-vous sûr de vouloir révoquer votre token ?\n\nCela invalidera immédiatement votre session actuelle.')) {
                         return;
                     }
 
@@ -179,7 +179,7 @@
                         const data = await response.json();
 
                         if (data.success) {
-                            alert('Tokens révoqués avec succès. Vous allez être redirigé vers l\'accueil.');
+                            alert('Token révoqué avec succès. Vous allez être redirigé vers l\'accueil.');
                             window.location.href = '/';
                         } else {
                             alert('Erreur lors de la révocation: ' + data.error);
