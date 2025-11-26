@@ -36,28 +36,28 @@ router.get('/login', (req, res) => {
 router.get('/register', (req, res) => {
     const keycloakClient = req.app.locals.keycloakClient;
 
-    // 1. PKCE : Génère un code_verifier aléatoire
-    const codeVerifier = generators.codeVerifier()
-        ;
-    // 2. PKCE : Crée le code_challenge (SHA256 du verifier)
+    const codeVerifier = generators.codeVerifier();
     const codeChallenge = generators.codeChallenge(codeVerifier);
-
-    // 3. CSRF : Génère un state aléatoire
     const state = generators.state();
 
-    // Sauvegarde des valeurs PKCE et state en session pour la vérification ultérieure
     req.session.codeVerifier = codeVerifier;
     req.session.state = state;
 
-    const registerUrl = keycloakClient.authorizationUrl({
-        scope: 'openid profile email',
-        state: state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        kc_action: 'REGISTER'
-    });
+    // Construire manuellement l'URL d'inscription Keycloak
+    const keycloakBaseUrl = process.env.KEYCLOAK_ISSUER || 'http://localhost:8080/realms/projetcis';
+    const clientId = process.env.CLIENT_ID || 'webapp';
+    const redirectUri = process.env.REDIRECT_URI || 'https://localhost:3000/auth/callback';
 
-    console.log('Redirection vers la page d\'inscription Keycloak');
+    const registerUrl = `${keycloakBaseUrl}/protocol/openid-connect/registrations` +
+        `?client_id=${encodeURIComponent(clientId)}` +
+        `&response_type=code` +
+        `&scope=${encodeURIComponent('openid profile email')}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&state=${state}` +
+        `&code_challenge=${codeChallenge}` +
+        `&code_challenge_method=S256`;
+
+    console.log('Redirection vers la page d\'inscription Keycloak:', registerUrl);
     res.redirect(registerUrl);
 });
 
