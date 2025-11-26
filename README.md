@@ -1,5 +1,39 @@
 # Configuration Keycloak & Application Node.js
 
+## Etape préliminaire: Configuration de Https locale
+L’application utilise HTTPS obligatoire pour respecter PKCE + OIDC.
+Pour cela, on génère un certificat SSL local avec mkcert.
+
+### Installer mkcert
+
+Pour Windows:
+```bash
+choco install mkcert
+```
+
+### Générer les certificats HTTPS
+
+```bash
+mkcert localhost 127.0.0.1 ::1
+```
+Cela génère :
+
+localhost+2.pem (certificat)
+
+localhost+2-key.pem (clé privée)
+
+### Placer les certificats dans votre projet
+Créer le dossier :
+```bash
+/certs
+```
+Puis déplacer les fichiers générés dedans :
+```bash
+/certs/localhost+2.pem
+/certs/localhost+2-key.pem
+```
+/certs est déjà placé dans .gitignore
+
 ## 1. Installation et lancement de Keycloak
 
 ### 1.1 Pull de l’image Keycloak
