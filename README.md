@@ -1,154 +1,214 @@
-# Configuration Keycloak & Application Node.js
+# Projet CIS – Démonstrateur OAuth2 / OpenID Connect avec Keycloak
 
-## Etape préliminaire: Configuration de Https locale
-L’application utilise HTTPS obligatoire pour respecter PKCE + OIDC.
-Pour cela, on génère un certificat SSL local avec mkcert.
+Ce projet met en place une architecture complète pour illustrer l’authentification par délégation avec Keycloak :
 
-### Installer mkcert
+- Une application Node.js / Express (`webapp2`) protégée par OpenID Connect (flow "code" + PKCE).
+- Un serveur Keycloak (mode `start-dev`) avec import automatique d’un realm préconfiguré (`projetcis`).
+- Une base PostgreSQL utilisée comme backend de Keycloak.
+- Un serveur HTTPS local pour la webapp avec certificats auto-signés.
 
-Pour Windows:
-```bash
-choco install mkcert
-```
-
-### Générer les certificats HTTPS
-
-```bash
-mkcert localhost 127.0.0.1 ::1
-```
-Cela génère :
-
-localhost+2.pem (certificat)
-
-localhost+2-key.pem (clé privée)
-
-### Placer les certificats dans votre projet
-Créer le dossier :
-```bash
-/certs
-```
-Puis déplacer les fichiers générés dedans :
-```bash
-/certs/localhost+2.pem
-/certs/localhost+2-key.pem
-```
-/certs est déjà placé dans .gitignore
-
-## 1. Installation et lancement de Keycloak
-
-### 1.1 Pull de l’image Keycloak
-
-```bash
-docker pull quay.io/keycloak/keycloak
-```
-
-### 1.2 Lancement du conteneur Keycloak (mode dev)
-
-#### 1.2.1 Création d'un volume pour keycloak:
-
-```bash
-docker volume create keycloak-data
-```
-#### 1.2.2 Commande de lancement du conteneur pour Windows:
-
-```bash
-docker run -d --name keycloak-dev -p 127.0.0.1:8080:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=<password> -e KEYCLOAK_DEFAULT_REALM=projetcis -v ${PWD}/imports:/opt/keycloak/data/import quay.io/keycloak/keycloak:latest start-dev --import-realm
-```
-
-### 1.3 Accéder à Keycloak
-
-Ouvrir dans le navigateur :
-
-http://localhost:8080
-
-Identifiants admin :
-
-- **username** : admin  
-- **password** : <password>
-
+L’ensemble est orchestré avec Docker Compose.
 
 ---
 
-## 2. Configuration Keycloak
+## 1. Architecture générale
 
-### 2.1 Création du Realm
+Organisation des dossiers (simplifiée) :
 
-1. Aller dans la sidebar gauche  
-2. Cliquer sur **Manage realms**   
-3. Cliquer sur le realm : **projetcis** pour qu'il devient le realm courant
+```text
+cis-oidc/
+├─ docker-compose.yml        # Déclaration des services Docker (Postgres, Keycloak, Webapp)
+├─ webapp2/
+ # Projet CIS – Démonstrateur OAuth2 / OpenID Connect avec Keycloak
 
----
+Ce projet met en place une architecture complète pour illustrer l’authentification par délégation avec Keycloak :
 
-### 2.2 Le Client WebApp
+- Une application Node.js / Express (`webapp2`) protégée par OpenID Connect (flow « authorization code » + PKCE).
+- Un serveur Keycloak (mode `start-dev`) avec import automatique d’un realm préconfiguré (`projetcis`).
+- Une base PostgreSQL utilisée comme backend de Keycloak.
+- Un serveur HTTPS local pour la webapp avec certificats auto-signés.
 
-Aller dans : **Clients → webapp**
-
-#### Paramètres configurées par realm.json :
-
-| Champ | Valeur |
-|-------|--------|
-| **Client ID** | webapp |
-| **Name** | WebApp Client |
-| **Client type** | OpenID Connect |
-| **Client authentication** | ON |
-| **Authorization** | OFF |
-| **Standard flow** | ON |
-| **Direct access grants** | OFF |
-| **Service accounts** | OFF |
-| **OAuth Device Flow** | OFF |
-| **PKCE** | Required |
-| **Code challenge method** | S256 |
-
-#### Redirections :
-
-| Paramètre Keycloak | Valeur |
-|--------------------|--------|
-| **Valid Redirect URIs** | http://localhost:3000/auth/callback |
-| **Valid Post Logout Redirect URIs** | http://localhost:3000/* |
-| **Web Origins** | http://localhost:3000/ |
+L’ensemble est orchestré avec Docker Compose.
 
 ---
 
-### 2.3 Récupérer le secret du client
+## Architecture générale
 
-1. Aller dans l’onglet **Credentials**  
-2. Copier le champ **Client Secret**
+Organisation des dossiers (simplifiée) :
 
----
-
-## 3. Configuration de l’application Node.js
-
-Créer un fichier **.env** à la racine du projet :
-
+```text
+cis-oidc/
+├─ docker-compose.yml        # Déclaration des services Docker (Postgres, Keycloak, Webapp)
+├─ webapp2/
+│  ├─ server.js              # Entrée principale Node.js (Express + HTTPS)
+│  ├─ config/
+│  │   └─ keycloak.js        # Initialisation du client OpenID Connect
+│  ├─ routes/
+│  │   ├─ auth.js            # Routes /login, /logout, /auth/callback, /register
+│  │   └─ pages.js           # Routes /, /profile, /devices
+│  ├─ middleware/
+│  │   └─ auth.js            # requireAuth, refreshTokenIfNeeded, etc.
+│  ├─ views/                 # Templates EJS
+│  ├─ public/                # Assets statiques
+│  ├─ certs/                 # Certificats TLS locaux (non versionnés)
+│  ├─ .env                   # Variables d’environnement (non versionné)
+│  └─ Dockerfile             # Image de la webapp
+└─ webapp2/imports/
+   └─ realm.json             # Realm Keycloak "projetcis" à importer
 ```
-# Configuration Keycloak
+
+Services Docker principaux :
+
+- `postgres-keycloak` : base PostgreSQL pour Keycloak (DB, utilisateur keycloak).
+- `keycloak` : serveur Keycloak (import automatique du realm depuis `webapp2/imports/realm.json`).
+- `cis-webapp` : application Node.js / Express exposée en HTTPS sur `https://localhost:3000`.
+
+## Prérequis
+
+Sur la machine hôte :
+
+- Docker Desktop installé et fonctionnel.
+- Node.js 18+ (optionnel, uniquement si on veut lancer la webapp hors Docker).
+- Un outil de génération de certificats (par ex. `mkcert`) si l’on doit régénérer les certificats HTTPS locaux.
+
+Ajouter l’entrée suivante dans le fichier hosts (`C:\Windows\System32\drivers\etc\hosts`) :
+
+```text
+127.0.0.1   keycloak
+```
+
+Cette ligne permet au navigateur d’accéder à Keycloak via `http://keycloak:8080` comme si c’était un nom de machine.
+
+## Certificats TLS et script de génération
+
+La webapp tourne en HTTPS avec un certificat auto-signé. Les fichiers attendus :
+
+```text
+webapp2/certs/
+  ├─ localhost+2.pem
+  └─ localhost+2-key.pem
+```
+
+Exemple de génération avec `mkcert` :
+
+```bash
+mkcert -install
+mkcert -key-file localhost+2-key.pem -cert-file localhost+2.pem "localhost" 127.0.0.1 ::1
+```
+
+Copiez ensuite ces fichiers dans `webapp2/certs/`. Ces fichiers ne doivent pas être versionnés (ignorés par `.gitignore`).
+
+## Variables d’environnement de la webapp
+
+Créez `webapp2/.env` (non versionné) avec, par exemple :
+
+```env
+PORT=3000
+
+# URLs Keycloak
 KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+
+# Client OIDC
 REALM=projetcis
 CLIENT_ID=webapp
-CLIENT_SECRET=<collez ici le secret que vous avez copié>
+CLIENT_SECRET=webapp-client-secret-123
+REDIRECT_URI=https://localhost:3000/auth/callback
 
-# Configuration serveur
-PORT=3000
-REDIRECT_URI=http://localhost:3000/auth/callback
+# Session Express
+SESSION_SECRET=cis-project-session-secret
+```
+
+- `KEYCLOAK_INTERNAL_URL` : utilisée par la webapp **dans Docker** pour interroger Keycloak (`http://keycloak:8080`).
+- `KEYCLOAK_URL` : utilisée par le navigateur (public) et dans les redirections (`http://localhost:8080` ou via l’entrée hosts).
+
+## Configuration Keycloak (`realm.json`)
+
+Le fichier `webapp2/imports/realm.json` définit le realm `projetcis` :
+
+- Realm activé avec options de connexion (login, reset password, remember-me, etc.).
+- Client `webapp` (confidentiel) avec `client-secret`.
+- `redirectUris` incluant `https://localhost:3000/auth/callback` et `https://localhost:3000/*`.
+- `webOrigins` incluant `https://localhost:3000`.
+- PKCE activé (`"pkce.code.challenge.method": "S256"`).
+- Quelques rôles de base (`user`, `admin`).
+
+Au démarrage, Keycloak importe ce realm automatiquement grâce à l’option d’import dans `docker-compose.yml`.
+
+## Démarrage avec Docker Compose
+
+Depuis la racine du projet (`cis-oidc/`) :
+
+```bash
+# Construire et lancer les services
+docker compose up --build
+```
+
+Services exposés :
+
+- Postgres sur `localhost:5432`
+- Keycloak sur `http://localhost:8080`
+- Webapp sur `https://localhost:3000`
+
+Accéder à l’interface Keycloak d’administration (facultatif) :
 
 ```
+http://localhost:8080
+```
+
+Identifiants admin par défaut (config d’exemple) :
+
+```text
+admin / admin
+```
+
+Accéder à la webapp :
+
+```
+https://localhost:3000
+```
+
+Cliquer sur « Se connecter » pour lancer le flux OIDC (redirection vers Keycloak, puis retour sur `/auth/callback`).
+
+La page `/profile` affiche les informations de l’utilisateur et la durée de validité du token.
+
+## Flux d’authentification
+
+Résumé du flux standard (login) :
+
+1. L’utilisateur ouvre `https://localhost:3000`.
+2. Il clique sur « Se connecter ».
+3. La route `GET /login` génère un `code_verifier`, un `code_challenge` et un `state`, puis redirige vers Keycloak.
+4. L’utilisateur s’authentifie sur Keycloak.
+5. Keycloak redirige vers `/auth/callback` avec un `code` (flow « authorization code »).
+6. La webapp échange ce code contre des tokens (`access_token`, `id_token`, `refresh_token`).
+7. Les informations de l’utilisateur sont récupérées via `userinfo` et stockées en session.
+8. Le middleware `refreshTokenIfNeeded` peut rafraîchir automatiquement le token si nécessaire.
+
+Un rafraîchissement automatique est déclenché lorsque le token expire dans moins de 5 minutes.
+
+## Nettoyage
+
+Pour arrêter et supprimer les conteneurs et le volume Postgres :
+
+```bash
+docker compose down -v
+```
+
+Cela supprime également les données Keycloak (volume `keycloak-postgres`).
+
+## Points à retenir
+
+- Les certificats TLS (`webapp2/certs/*.pem`) et les variables d’environnement (`webapp2/.env`) ne sont pas versionnés.
+- `docker-compose.yml` orchestre les services : Postgres, Keycloak, Webapp.
+- Le fichier hosts de la machine hôte doit contenir :
+
+```text
+127.0.0.1   keycloak
+```
+
+afin que le navigateur accepte les redirections vers `http://keycloak:8080`.
+
+Le projet illustre un flux OIDC complet avec : code + PKCE, refresh token, gestion de session côté Node.js et logout via Keycloak.
 
 ---
-
-## 4. Lancer l’application
-
-Installer les dépendances :
-
-```bash
-npm install
-```
-
-Démarrer le serveur :
-
-```bash
-nodemon server.js
-```
-
-Accéder à l’application :
-
-http://localhost:3000

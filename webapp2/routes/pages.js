@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth, refreshTokenIfNeeded } = require('../middleware/auth');
+
 const router = express.Router();
 
 /**
@@ -18,12 +19,16 @@ router.get('/', (req, res) => {
  * Le refresh token sera automatiquement vérifié et renouvelé si nécessaire
  */
 router.get('/profile', refreshTokenIfNeeded, requireAuth, (req, res) => {
-    const userinfo = req.session.userinfo;
-    const tokenSet = req.session.tokenSet;
+    const userinfo = req.session.userinfo || null;
+    const tokenSet = req.session.tokenSet || null;
 
-    // Calcul du temps restant avant expiration
-    const expiresIn = tokenSet.expires_at - Math.floor(Date.now() / 1000);
-    const isExpired = expiresIn <= 0;
+    let expiresIn = null;
+    let isExpired = true;
+
+    if (tokenSet && typeof tokenSet.expires_at === 'number') {
+        expiresIn = tokenSet.expires_at - Math.floor(Date.now() / 1000);
+        isExpired = expiresIn <= 0;
+    }
 
     res.render('pages/profile', {
         title: 'Mon Profil',

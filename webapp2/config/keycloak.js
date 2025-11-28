@@ -1,51 +1,63 @@
 // config/keycloak.js
 require('dotenv').config();
-const { Issuer, generators } = require('openid-client');
+const { Issuer } = require('openid-client');
 
 async function initializeKeycloak() {
-    try {
-        const config = {
-            keycloakUrl: process.env.KEYCLOAK_URL,
-            realm: process.env.REALM,
-            clientId: process.env.CLIENT_ID,
-            clientSecret: process.env.CLIENT_SECRET,
-            redirectUri: process.env.REDIRECT_URI
-        };
+    const internalUrl = process.env.KEYCLOAK_INTERNAL_URL || 'http://keycloak:8080';
+    const publicUrl   = process.env.KEYCLOAK_URL || internalUrl;
 
-        if (!config.keycloakUrl || !config.realm || !config.clientId || !config.redirectUri) {
-            throw new Error("Missing Keycloak configuration in .env");
-        }
+    const realm        = process.env.REALM;
+    const clientId     = process.env.CLIENT_ID;
+    const clientSecret = process.env.CLIENT_SECRET;
+    const redirectUri  = process.env.REDIRECT_URI;
 
-        const issuerUrl = `${config.keycloakUrl}/realms/${config.realm}`;
-        console.log(`Découverte de l'issuer: ${issuerUrl}`);
-
-        // Discover OpenID configuration
-        const issuer = await Issuer.discover(issuerUrl);
-
-        console.log('Issuer découvert:', issuer.metadata.issuer);
-
-        // Create client
-        const keycloakClient = new issuer.Client({
-            client_id: config.clientId,
-            client_secret: config.clientSecret,
-            redirect_uris: [config.redirectUri],
-            response_types: ['code']
-        });
-
-        console.log('Client OpenID Connect initialisé');
-        console.log('Configuration client:');
-        console.log(`   - Client ID: ${config.clientId}`);
-        console.log(`   - Client Secret: ${config.clientSecret ? '***' + config.clientSecret.slice(-4) : '(none)'}`);
-        console.log(`   - Redirect URI: ${config.redirectUri}`);
-
-        return keycloakClient;
-
-    } catch (error) {
-        console.error("Erreur lors de l'initialisation de Keycloak:", error);
-        throw error;
+    if (!realm || !clientId || !redirectUri) {
+        throw new Error('Missing REALM / CLIENT_ID / REDIRECT_URI in environment variables');
     }
+
+    const discoveryUrl = `${internalUrl}/realms/${realm}`;
+    console.log('Keycloak discovery URL (internal):', discoveryUrl);
+
+    // Découverte depuis le conteneur (via "keycloak")
+    const issuer = await Issuer.discover(discoveryUrl);
+
+    console.log('Issuer reported by Keycloak:', issuer.metadata.issuer);
+
+    // On force l'issuer pour qu'il corresponde aux tokens de Keycloak
+    const publicIssuer = `${publicUrl}/realms/${realm}`;
+    issuer.metadata.issuer = publicIssuer;
+    issuer.issuer = publicIssuer;
+
+    // On réécrit les endpoints utilisés pour les redirections navigateur
+    if (issuer.metadata.authorization_endpoint) {
+        issuer.metadata.authorization_endpoint =
+            issuer.metadata.authorization_endpoint.replace(internalUrl, publicUrl);
+    }
+
+    if (issuer.metadata.end_session_endpoint) {
+        issuer.metadata.end_session_endpoint =
+            issuer.metadata.end_session_endpoint.replace(internalUrl, publicUrl);
+    }
+
+    const clientConfig = {
+        client_id: clientId,
+        redirect_uris: [redirectUri],
+        response_types: ['code']
+    };
+
+    if (clientSecret) {
+        clientConfig.client_secret = clientSecret;
+    }
+
+    const keycloakClient = new issuer.Client(clientConfig);
+
+    console.log('Keycloak client initialized with:');
+    console.log('  internal URL :', internalUrl);
+    console.log('  public  URL  :', publicUrl);
+    console.log('  realm        :', realm);
+    console.log('  client_id    :', clientId);
+
+    return keycloakClient;
 }
 
-module.exports = {
-    initializeKeycloak
-};
+module.exports = { initializeKeycloak };
