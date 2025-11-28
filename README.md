@@ -19,42 +19,23 @@ Organisation des dossiers (simplifiée) :
 cis-oidc/
 ├─ docker-compose.yml        # Déclaration des services Docker (Postgres, Keycloak, Webapp)
 ├─ webapp2/
- # Projet CIS – Démonstrateur OAuth2 / OpenID Connect avec Keycloak
-
-Ce projet met en place une architecture complète pour illustrer l’authentification par délégation avec Keycloak :
-
-- Une application Node.js / Express (`webapp2`) protégée par OpenID Connect (flow « authorization code » + PKCE).
-- Un serveur Keycloak (mode `start-dev`) avec import automatique d’un realm préconfiguré (`projetcis`).
-- Une base PostgreSQL utilisée comme backend de Keycloak.
-- Un serveur HTTPS local pour la webapp avec certificats auto-signés.
-
-L’ensemble est orchestré avec Docker Compose.
-
----
-
-## Architecture générale
-
-Organisation des dossiers (simplifiée) :
-
-```text
-cis-oidc/
-├─ docker-compose.yml        # Déclaration des services Docker (Postgres, Keycloak, Webapp)
-├─ webapp2/
 │  ├─ server.js              # Entrée principale Node.js (Express + HTTPS)
 │  ├─ config/
 │  │   └─ keycloak.js        # Initialisation du client OpenID Connect
+│  ├─ import/
+│  │   └─ realm.json         # Realm Keycloak "projetcis"
 │  ├─ routes/
 │  │   ├─ auth.js            # Routes /login, /logout, /auth/callback, /register
-│  │   └─ pages.js           # Routes /, /profile, /devices
+│  │   └─ pages.js           
 │  ├─ middleware/
 │  │   └─ auth.js            # requireAuth, refreshTokenIfNeeded, etc.
 │  ├─ views/                 # Templates EJS
 │  ├─ public/                # Assets statiques
-│  ├─ certs/                 # Certificats TLS locaux (non versionnés)
-│  ├─ .env                   # Variables d’environnement (non versionné)
+│  ├─ certs/                 # Certificats TLS locaux
+│  ├─ .env                   # Variables d’environnement
 │  └─ Dockerfile             # Image de la webapp
-└─ webapp2/imports/
-   └─ realm.json             # Realm Keycloak "projetcis" à importer
+├─ scripts/
+│  ├─ setup-certs.ps1        # Générer les certificats TLS
 ```
 
 Services Docker principaux :
@@ -116,7 +97,7 @@ CLIENT_SECRET=webapp-client-secret-123
 REDIRECT_URI=https://localhost:3000/auth/callback
 
 # Session Express
-SESSION_SECRET=cis-project-session-secret
+SESSION_SECRET=<Votre secret ici>
 ```
 
 - `KEYCLOAK_INTERNAL_URL` : utilisée par la webapp **dans Docker** pour interroger Keycloak (`http://keycloak:8080`).
@@ -138,6 +119,10 @@ Au démarrage, Keycloak importe ce realm automatiquement grâce à l’option d�
 ## Démarrage avec Docker Compose
 
 Depuis la racine du projet (`cis-oidc/`) :
+```bash
+# Générer les certificats TLS
+.scripts\setup-certs.ps1
+```
 
 ```bash
 # Construire et lancer les services
@@ -185,30 +170,13 @@ Résumé du flux standard (login) :
 7. Les informations de l’utilisateur sont récupérées via `userinfo` et stockées en session.
 8. Le middleware `refreshTokenIfNeeded` peut rafraîchir automatiquement le token si nécessaire.
 
-Un rafraîchissement automatique est déclenché lorsque le token expire dans moins de 5 minutes.
+Un rafraîchissement automatique est déclenché lorsque le token expire.
 
 ## Nettoyage
 
-Pour arrêter et supprimer les conteneurs et le volume Postgres :
+Pour arrêter et supprimer les conteneurs :
 
 ```bash
-docker compose down -v
+docker compose down
 ```
-
-Cela supprime également les données Keycloak (volume `keycloak-postgres`).
-
-## Points à retenir
-
-- Les certificats TLS (`webapp2/certs/*.pem`) et les variables d’environnement (`webapp2/.env`) ne sont pas versionnés.
-- `docker-compose.yml` orchestre les services : Postgres, Keycloak, Webapp.
-- Le fichier hosts de la machine hôte doit contenir :
-
-```text
-127.0.0.1   keycloak
-```
-
-afin que le navigateur accepte les redirections vers `http://keycloak:8080`.
-
-Le projet illustre un flux OIDC complet avec : code + PKCE, refresh token, gestion de session côté Node.js et logout via Keycloak.
-
 ---
