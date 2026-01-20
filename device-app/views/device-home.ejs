@@ -193,7 +193,7 @@
                     <h2>⏳ Autorisation en attente...</h2>
                     <div class="spinner"></div>
                 </div>
-                
+
                 <div class="instructions">
                     <h3>Instructions pour l'autorisation :</h3>
                     <ol>
@@ -202,24 +202,17 @@
                         <li>Entrez le code suivant :</li>
                     </ol>
                 </div>
-                
+
                 <div class="code-display">
                     ${flowData.user_code}
                 </div>
-                
-                ${flowData.qr_code ? `
-                <div class="qr-code">
-                    <h3>Ou scannez ce QR Code :</h3>
-                    <img src="${flowData.qr_code}" alt="QR Code">
-                </div>
-                ` : ''}
-                
-                <button class="btn btn-success" onclick="openBrowser()">
-                    🌐 Ouvrir dans le navigateur
-                </button>
-                
+
                 <p style="text-align: center; color: #718096; margin-top: 20px;">
                     Ce code expire dans ${flowData.expires_in} secondes
+                </p>
+
+                <p style="text-align: center; color: #a0aec0; font-size: 14px; margin-top: 10px;">
+                    💡 Copiez le code ci-dessus et collez-le dans la page d'activation
                 </p>
             `;
         }

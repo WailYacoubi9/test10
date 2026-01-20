@@ -62,10 +62,8 @@ app.post('/start-device-flow', async (req, res) => {
       started_at: Date.now()
     };
 
-    // Générer le QR code qui pointe vers webapp avec le code pré-rempli
+    // URL d'activation webapp (QR code désactivé pour Docker)
     const webappActivationUrl = `https://localhost:3000/activate?code=${deviceFlowState.user_code}`;
-    const qrCodeDataUrl = await qrcode.toDataURL(webappActivationUrl);
-    deviceFlowState.qr_code = qrCodeDataUrl;
     deviceFlowState.webapp_activation_url = webappActivationUrl;
 
     console.log('[Device Flow] Initié avec succès');
@@ -81,7 +79,6 @@ app.post('/start-device-flow', async (req, res) => {
         user_code: deviceFlowState.user_code,
         verification_uri: deviceFlowState.verification_uri,
         verification_uri_complete: deviceFlowState.verification_uri_complete,
-        qr_code: qrCodeDataUrl,
         expires_in: deviceFlowState.expires_in
       }
     });
