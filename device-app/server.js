@@ -265,26 +265,40 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'device-app' });
 });
 
-// Démarrage du serveur HTTPS
-try {
-  // Essayer de charger les certificats HTTPS
-  const httpsOptions = {
-    key: fs.readFileSync(path.join(__dirname, 'certs', 'localhost+2-key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'certs', 'localhost+2.pem'))
-  };
+// Démarrage du serveur HTTPS ou HTTP
+const certPath = path.join(__dirname, 'certs', 'localhost+2-key.pem');
+const certExists = fs.existsSync(certPath);
 
-  https.createServer(httpsOptions, app).listen(PORT, () => {
-    console.log(`[Server] Device App HTTPS démarrée sur https://localhost:${PORT}`);
+if (certExists) {
+  try {
+    // Essayer de charger les certificats HTTPS
+    const httpsOptions = {
+      key: fs.readFileSync(path.join(__dirname, 'certs', 'localhost+2-key.pem')),
+      cert: fs.readFileSync(path.join(__dirname, 'certs', 'localhost+2.pem'))
+    };
+
+    https.createServer(httpsOptions, app).listen(PORT, '0.0.0.0', () => {
+      console.log(`[Server] Device App HTTPS démarrée sur https://localhost:${PORT}`);
+      console.log(`[Server] Instructions:`);
+      console.log(`   1. Accédez à https://localhost:${PORT}`);
+      console.log(`   2. Cliquez sur "Démarrer l'authentification"`);
+      console.log(`   3. Suivez les instructions affichées`);
+    });
+  } catch (error) {
+    console.error('[Server] Erreur HTTPS:', error.message);
+    console.log('[Server] Basculement vers HTTP...');
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Server] Device App HTTP démarrée sur http://localhost:${PORT}`);
+    });
+  }
+} else {
+  // Pas de certificats, démarrer directement en HTTP
+  console.log('[Server] Certificats HTTPS non trouvés, démarrage en HTTP...');
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] Device App HTTP démarrée sur http://localhost:${PORT}`);
     console.log(`[Server] Instructions:`);
-    console.log(`   1. Accédez à https://localhost:${PORT}`);
+    console.log(`   1. Accédez à http://localhost:${PORT}`);
     console.log(`   2. Cliquez sur "Démarrer l'authentification"`);
     console.log(`   3. Suivez les instructions affichées`);
-  });
-} catch (error) {
-  // Fallback sur HTTP si pas de certificats
-  console.log('[Server] Certificats HTTPS non trouvés, démarrage en HTTP...');
-  app.listen(PORT, () => {
-    console.log(`[Server] Device App HTTP démarrée sur http://localhost:${PORT}`);
-    console.log(`   Pour HTTPS, générez les certificats avec mkcert`);
   });
 }
