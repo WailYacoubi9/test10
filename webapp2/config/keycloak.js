@@ -31,6 +31,8 @@ async function initializeKeycloak() {
             end_session_endpoint: issuer.metadata.end_session_endpoint.replace(keycloakPublicUrl, keycloakInternalUrl),
             revocation_endpoint: issuer.metadata.revocation_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
             introspection_endpoint: issuer.metadata.introspection_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
+            jwks_uri: issuer.metadata.jwks_uri?.replace(keycloakPublicUrl, keycloakInternalUrl),
+            registration_endpoint: issuer.metadata.registration_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
             // Garder authorization_endpoint avec l'URL publique pour les redirections navigateur
             authorization_endpoint: issuer.metadata.authorization_endpoint
         };
