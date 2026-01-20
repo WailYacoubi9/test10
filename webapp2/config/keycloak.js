@@ -23,18 +23,19 @@ async function initializeKeycloak() {
         console.log('Issuer découvert:', issuer.metadata.issuer);
 
         // Correction des endpoints pour utiliser l'URL interne pour les appels serveur-à-serveur
-        // mais garder l'URL publique pour les redirections utilisateur
+        // mais garder l'URL publique pour les redirections navigateur
         const correctedMetadata = {
             ...issuer.metadata,
+            // Endpoints serveur-à-serveur (utiliser URL interne Docker)
             token_endpoint: issuer.metadata.token_endpoint.replace(keycloakPublicUrl, keycloakInternalUrl),
             userinfo_endpoint: issuer.metadata.userinfo_endpoint.replace(keycloakPublicUrl, keycloakInternalUrl),
-            end_session_endpoint: issuer.metadata.end_session_endpoint.replace(keycloakPublicUrl, keycloakInternalUrl),
             revocation_endpoint: issuer.metadata.revocation_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
             introspection_endpoint: issuer.metadata.introspection_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
             jwks_uri: issuer.metadata.jwks_uri?.replace(keycloakPublicUrl, keycloakInternalUrl),
-            registration_endpoint: issuer.metadata.registration_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
-            // Garder authorization_endpoint avec l'URL publique pour les redirections navigateur
-            authorization_endpoint: issuer.metadata.authorization_endpoint
+            // Endpoints pour redirections navigateur (garder URL publique)
+            authorization_endpoint: issuer.metadata.authorization_endpoint,
+            end_session_endpoint: issuer.metadata.end_session_endpoint, // Logout = redirect navigateur
+            registration_endpoint: issuer.metadata.registration_endpoint
         };
 
         console.log('Endpoints corrigés:');
