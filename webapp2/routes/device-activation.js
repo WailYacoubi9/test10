@@ -4,9 +4,11 @@ const router = express.Router();
 /**
  * GET /activate
  * Page d'activation d'appareil (Device Flow)
+ * Permet à l'utilisateur d'entrer le code device depuis l'interface webapp
  */
 router.get('/activate', (req, res) => {
-    const code = req.query.code || '';
+    const code = req.query.code || ''; // Code pré-rempli depuis QR code
+
     res.render('pages/activate', {
         title: 'Activer un appareil',
         prefilledCode: code
@@ -28,14 +30,17 @@ router.post('/activate', (req, res) => {
         });
     }
 
+    // Formater le code (enlever espaces, tirets, mettre en majuscules)
     const formattedCode = userCode.replace(/[\s-]/g, '').toUpperCase();
-    
-    // Use internal URL for backend, public for redirects
+
+    // Construire l'URL Keycloak avec le code pré-rempli
     const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
     const REALM = process.env.REALM || 'projetcis';
 
+    // Keycloak accepte le code via query parameter
     const keycloakDeviceUrl = `${KEYCLOAK_URL}/realms/${REALM}/device?user_code=${formattedCode}`;
 
+    // Rediriger vers Keycloak
     res.redirect(keycloakDeviceUrl);
 });
 

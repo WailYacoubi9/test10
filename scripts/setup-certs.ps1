@@ -1,30 +1,42 @@
-# Folder for certificates
-$certDir = "D:\Projet_CIS\cis-oidc\webapp2\certs"
-
-# Create folder if it does not exist
-if (!(Test-Path $certDir)) {
-    New-Item -ItemType Directory -Path $certDir | Out-Null
+# Webapp certs
+$webappCertDir = "C:\Users\waily\test10\webapp2\certs"
+if (!(Test-Path $webappCertDir)) {
+    New-Item -ItemType Directory -Path $webappCertDir | Out-Null
 }
 
-# Certificate file paths
-$cert = Join-Path $certDir "localhost+2.pem"
-$key  = Join-Path $certDir "localhost+2-key.pem"
+$webappCert = Join-Path $webappCertDir "localhost+2.pem"
+$webappKey  = Join-Path $webappCertDir "localhost+2-key.pem"
 
-# If certificates already exist -> nothing to do
-if ((Test-Path $cert) -and (Test-Path $key)) {
-    Write-Host "Certificates already exist in $certDir"
-    exit 0
+if (!(Test-Path $webappCert) -or !(Test-Path $webappKey)) {
+    Write-Host "Generating certificates for WebApp..."
+    Push-Location $webappCertDir
+    mkcert localhost 127.0.0.1 ::1
+    Pop-Location
+    Write-Host "✅ WebApp certificates generated"
+} else {
+    Write-Host "✅ WebApp certificates already exist"
 }
 
-Write-Host "Generating certificates with mkcert..."
+# Device-app certs
+$deviceCertDir = "C:\Users\waily\test10\device-app\certs"
+if (!(Test-Path $deviceCertDir)) {
+    New-Item -ItemType Directory -Path $deviceCertDir | Out-Null
+}
 
-# Go to certs directory
-Push-Location $certDir
+$deviceCert = Join-Path $deviceCertDir "localhost+2.pem"
+$deviceKey  = Join-Path $deviceCertDir "localhost+2-key.pem"
 
-# Generate certificates
-mkcert localhost 127.0.0.1 ::1
+if (!(Test-Path $deviceCert) -or !(Test-Path $deviceKey)) {
+    Write-Host "Generating certificates for Device-App..."
+    Push-Location $deviceCertDir
+    mkcert localhost 127.0.0.1 ::1
+    Pop-Location
+    Write-Host "✅ Device-App certificates generated"
+} else {
+    Write-Host "✅ Device-App certificates already exist"
+}
 
-# Return to previous location
-Pop-Location
-
-Write-Host "Certificates generated in $certDir"
+Write-Host ""
+Write-Host "==================================="
+Write-Host "All certificates generated!"
+Write-Host "==================================="

@@ -1,0 +1,35 @@
+# Node.js - dépendances
+webapp2/node_modules/
+webapp2/npm-debug.log*
+webapp2/yarn-error.log*
+webapp2/package-lock.json
+
+# Environnements et secrets
+webapp2/.env
+webapp2/.env.local
+webapp2/.env.*.local
+
+# Certificats TLS locaux (générés par script)
+webapp2/certs/
+certs/
+*.pem
+*.key
+
+# Logs applicatifs
+webapp2/logs/
+webapp2/*.log
+
+# Fichiers système / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Divers
+dist/
+coverage/

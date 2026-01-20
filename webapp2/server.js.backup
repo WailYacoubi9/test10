@@ -54,12 +54,10 @@ async function start() {
 
         // Import des routes une fois Keycloak prêt
         const authRoutes = require('./routes/auth');
-        const pageRoutes = require('./routes/pages');
-        const deviceActivationRoutes = require('./routes/device-activation');  // ← AJOUTÉ
+        const pageRoutes = require('./routes/pages'); // assure-toi que le fichier s'appelle bien pages.js
 
         app.use('/', authRoutes);
         app.use('/', pageRoutes);
-        app.use('/', deviceActivationRoutes);  // ← AJOUTÉ
 
         // 404
         app.use((req, res) => {

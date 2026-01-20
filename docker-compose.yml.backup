@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: projetcis123
+    volumes:
+      - keycloak-postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - cis-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.5
+    container_name: keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: projetcis123
+    volumes:
+      - ./webapp2/imports:/opt/keycloak/data/import
+    ports:
+      - "8080:8080"
+    networks:
+      - cis-net
+
+  webapp:
+    build:
+      context: ./webapp2
+      dockerfile: Dockerfile
+    container_name: cis-webapp
+
+    # On attend juste que Keycloak soit lancé, pas "healthy"
+    depends_on:
+      - keycloak
+
+    # Si la webapp plante parce que Keycloak n'est pas encore prêt,
+    # Docker la relance automatiquement jusqu'à ce que ça passe.
+    restart: on-failure:10
+
+    environment:
+      PORT: 3000
+
+      # interne (dans Docker)
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      # externe (navigateur)
+      KEYCLOAK_URL: http://localhost:8080
+
+      REALM: projetcis
+      CLIENT_ID: webapp
+      CLIENT_SECRET: webapp-client-secret-123
+      REDIRECT_URI: https://localhost:3000/auth/callback
+      SESSION_SECRET: cis-project-secret
+      NODE_EXTRA_CA_CERTS: /app/certs/localhost+2.pem
+
+    volumes:
+      - ./webapp2/certs:/app/certs:ro
+
+    ports:
+      - "3000:3000"
+    networks:
+      - cis-net
+
+networks:
+  cis-net:
+
+volumes:
+  keycloak-postgres:

@@ -1,78 +1,88 @@
-version: "3.8"
-
 services:
-
   postgres:
     image: postgres:15
     container_name: postgres-keycloak
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: projetcis123
+      POSTGRES_PASSWORD: keycloak
     volumes:
       - keycloak-postgres:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - cis-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.5
+    image: quay.io/keycloak/keycloak:latest
     container_name: keycloak
-    command: start-dev --import-realm
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: projetcis123
+      KC_DB_PASSWORD: keycloak
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev --import-realm
     volumes:
       - ./webapp2/imports:/opt/keycloak/data/import
     ports:
       - "8080:8080"
     networks:
       - cis-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   webapp:
     build:
       context: ./webapp2
       dockerfile: Dockerfile
     container_name: cis-webapp
-
-    # On attend juste que Keycloak soit lancé, pas "healthy"
-    depends_on:
-      - keycloak
-
-    # Si la webapp plante parce que Keycloak n'est pas encore prêt,
-    # Docker la relance automatiquement jusqu'à ce que ça passe.
-    restart: on-failure:10
-
     environment:
-      PORT: 3000
-
-      # interne (dans Docker)
-      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
-      # externe (navigateur)
-      KEYCLOAK_URL: http://localhost:8080
-
-      REALM: projetcis
-      CLIENT_ID: webapp
-      CLIENT_SECRET: webapp-client-secret-123
-      REDIRECT_URI: https://localhost:3000/auth/callback
-      SESSION_SECRET: cis-project-secret
-      NODE_EXTRA_CA_CERTS: /app/certs/localhost+2.pem
-
-    volumes:
-      - ./webapp2/certs:/app/certs:ro
-
+      - KEYCLOAK_URL=http://localhost:8080
+      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - REALM=projetcis
+      - CLIENT_ID=webapp
+      - CLIENT_SECRET=QRGWCkucGM2XMkd06UJ7MQMsJC1Jfjho
+      - REDIRECT_URI=https://localhost:3000/auth/callback
+      - PORT=3000
+      - SESSION_SECRET=votre-secret-session-super-securise
     ports:
       - "3000:3000"
     networks:
       - cis-net
+    depends_on:
+      - keycloak
+    restart: on-failure:30
+
+  device-app:
+    build:
+      context: ./device-app
+      dockerfile: Dockerfile
+    container_name: cis-device-app
+    environment:
+      - KEYCLOAK_URL=http://localhost:8080
+      - KEYCLOAK_INTERNAL_URL=http://keycloak:8080
+      - REALM=projetcis
+      - CLIENT_ID=devicecis
+      - PORT=4000
+    ports:
+      - "4000:4000"
+    networks:
+      - cis-net
+    depends_on:
+      - keycloak
+    restart: on-failure:10
 
 networks:
   cis-net:
+    driver: bridge
 
 volumes:
   keycloak-postgres:
