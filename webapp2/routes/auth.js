@@ -124,7 +124,6 @@ router.get('/logout', (req, res) => {
     const keycloakClient = req.app.locals.keycloakClient;
     const tokenSet = req.session.tokenSet;
     const port = process.env.PORT || 3000;
-    const protocol = process.env.USE_HTTPS === 'false' ? 'http' : 'https';
 
     req.session.destroy((err) => {
         if (err) {
@@ -134,7 +133,7 @@ router.get('/logout', (req, res) => {
         // Redirection vers le endpoint de logout Keycloak
         const logoutUrl = keycloakClient.endSessionUrl({
             id_token_hint: tokenSet?.id_token,
-            post_logout_redirect_uri: `${protocol}://localhost:${port}/`
+            post_logout_redirect_uri: `https://localhost:${port}/`
         });
 
         console.log('Déconnexion et redirection');
@@ -183,7 +182,6 @@ router.get('/auth/revoke-and-logout', requireAuth, async (req, res) => {
     const keycloakClient = req.app.locals.keycloakClient;
     const tokenSet = req.session.tokenSet;
     const port = process.env.PORT || 3000;
-    const protocol = process.env.USE_HTTPS === 'false' ? 'http' : 'https';
 
     try {
         console.log('Révocation des tokens avant déconnexion...');
@@ -207,7 +205,7 @@ router.get('/auth/revoke-and-logout', requireAuth, async (req, res) => {
             // Redirection vers Keycloak logout
             const logoutUrl = keycloakClient.endSessionUrl({
                 id_token_hint: tokenSet?.id_token,
-                post_logout_redirect_uri: `${protocol}://localhost:${port}/`
+                post_logout_redirect_uri: `https://localhost:${port}/`
             });
 
             console.log('Déconnexion complète');
