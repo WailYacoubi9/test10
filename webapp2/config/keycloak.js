@@ -56,6 +56,7 @@ async function initializeKeycloak() {
     console.log('  public  URL  :', publicUrl);
     console.log('  realm        :', realm);
     console.log('  client_id    :', clientId);
+    console.log('  client_secret:', clientSecret ? `${clientSecret.substring(0, 10)}...` : 'NOT SET');
 
     return keycloakClient;
 }
