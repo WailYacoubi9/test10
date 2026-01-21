@@ -25,12 +25,14 @@ app.use(express.json());
 // -----------------------------------------------------
 // 3) Session HTTP
 // -----------------------------------------------------
+// Note: secure cookie sera activé seulement si HTTPS est disponible
+const isHttps = process.env.USE_HTTPS !== 'false';
 app.use(session({
     secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true,          // uniquement via HTTPS
+        secure: isHttps,       // true pour HTTPS, false pour HTTP
         httpOnly: true,
         maxAge: 3600000        // 1 heure
     }
@@ -79,42 +81,59 @@ async function start() {
         });
 
         // -------------------------------------------------
-        // 5) Chargement des certificats mkcert
+        // 5) Chargement des certificats mkcert (optionnel)
         // -------------------------------------------------
         const certDir = path.join(__dirname, 'certs');
         const keyPath = path.join(certDir, 'localhost+2-key.pem');
         const certPath = path.join(certDir, 'localhost+2.pem');
 
         let httpsOptions;
+        let useHttps = false;
+
         try {
             httpsOptions = {
                 key: fs.readFileSync(keyPath),
                 cert: fs.readFileSync(certPath)
             };
+            useHttps = true;
+            console.log('✓ Certificats TLS trouvés, démarrage en HTTPS');
         } catch (e) {
-            console.error('Erreur lors du chargement des certificats TLS:');
-            console.error('Chemin clé :', keyPath);
-            console.error('Chemin cert:', certPath);
-            console.error(e);
-            process.exit(1);
+            console.log('⚠ Certificats TLS non trouvés, démarrage en HTTP');
+            console.log('  (Normal dans Docker, utilisez HTTPS en production avec un reverse proxy)');
         }
 
         // -------------------------------------------------
-        // 6) Démarrage du serveur HTTPS
+        // 6) Démarrage du serveur HTTPS ou HTTP
         // -------------------------------------------------
-        https.createServer(httpsOptions, app).listen(PORT, () => {
-            console.log('');
-            console.log('Serveur HTTPS démarré');
-            console.log('--------------------------------------------');
-            console.log(`URL front-end      : https://localhost:${PORT}`);
-            console.log(`Keycloak (public)  : ${process.env.KEYCLOAK_URL}`);
-            console.log(`Keycloak (interne) : ${process.env.KEYCLOAK_INTERNAL_URL || '(non défini)'}`);
-            console.log(`Realm              : ${process.env.REALM}`);
-            console.log(`Client ID          : ${process.env.CLIENT_ID}`);
-            console.log(`Redirect URI       : ${process.env.REDIRECT_URI}`);
-            console.log('--------------------------------------------');
-            console.log('');
-        });
+        if (useHttps) {
+            https.createServer(httpsOptions, app).listen(PORT, () => {
+                console.log('');
+                console.log('Serveur HTTPS démarré');
+                console.log('--------------------------------------------');
+                console.log(`URL front-end      : https://localhost:${PORT}`);
+                console.log(`Keycloak (public)  : ${process.env.KEYCLOAK_URL}`);
+                console.log(`Keycloak (interne) : ${process.env.KEYCLOAK_INTERNAL_URL || '(non défini)'}`);
+                console.log(`Realm              : ${process.env.REALM}`);
+                console.log(`Client ID          : ${process.env.CLIENT_ID}`);
+                console.log(`Redirect URI       : ${process.env.REDIRECT_URI}`);
+                console.log('--------------------------------------------');
+                console.log('');
+            });
+        } else {
+            app.listen(PORT, '0.0.0.0', () => {
+                console.log('');
+                console.log('Serveur HTTP démarré');
+                console.log('--------------------------------------------');
+                console.log(`URL front-end      : http://localhost:${PORT}`);
+                console.log(`Keycloak (public)  : ${process.env.KEYCLOAK_URL}`);
+                console.log(`Keycloak (interne) : ${process.env.KEYCLOAK_INTERNAL_URL || '(non défini)'}`);
+                console.log(`Realm              : ${process.env.REALM}`);
+                console.log(`Client ID          : ${process.env.CLIENT_ID}`);
+                console.log(`Redirect URI       : ${process.env.REDIRECT_URI}`);
+                console.log('--------------------------------------------');
+                console.log('');
+            });
+        }
 
     } catch (error) {
         console.error('Erreur lors du démarrage de l\'application:', error);

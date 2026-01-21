@@ -50,9 +50,10 @@ services:
       - REALM=projetcis
       - CLIENT_ID=webapp
       - CLIENT_SECRET=QRGWCkucGM2XMkd06UJ7MQMsJC1Jfjho
-      - REDIRECT_URI=https://localhost:3000/auth/callback
+      - REDIRECT_URI=http://localhost:3000/auth/callback
       - PORT=3000
       - SESSION_SECRET=votre-secret-session-super-securise
+      - USE_HTTPS=false
     ports:
       - "3000:3000"
     networks:
