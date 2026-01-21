@@ -44,13 +44,14 @@ router.get('/profile', refreshTokenIfNeeded, requireAuth, (req, res) => {
  */
 async function fetchDevicesFromKeycloak(accessToken) {
     const axios = require('axios');
-    const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
+    // Utiliser KEYCLOAK_INTERNAL_URL pour les appels serveur-à-serveur
+    const KEYCLOAK_INTERNAL_URL = process.env.KEYCLOAK_INTERNAL_URL || process.env.KEYCLOAK_URL || 'http://localhost:8080';
     const REALM = process.env.REALM || 'projetcis';
 
     try {
         // Appel à Keycloak Account API pour récupérer les sessions
         const response = await axios.get(
-            `${KEYCLOAK_URL}/realms/${REALM}/account/sessions/devices`,
+            `${KEYCLOAK_INTERNAL_URL}/realms/${REALM}/account/sessions/devices`,
             {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`

@@ -5,6 +5,7 @@ async function initializeKeycloak() {
     try {
         // UTILISER KEYCLOAK_INTERNAL_URL pour la découverte depuis Docker
         const keycloakInternalUrl = process.env.KEYCLOAK_INTERNAL_URL || process.env.KEYCLOAK_URL || 'http://localhost:8080';
+        const keycloakPublicUrl = process.env.KEYCLOAK_URL || 'http://localhost:8080';
         const realm = process.env.REALM;
         const clientId = process.env.CLIENT_ID;
         const clientSecret = process.env.CLIENT_SECRET;
@@ -21,7 +22,31 @@ async function initializeKeycloak() {
         const issuer = await Issuer.discover(issuerUrl);
         console.log('Issuer découvert:', issuer.metadata.issuer);
 
-        const keycloakClient = new issuer.Client({
+        // Correction des endpoints pour utiliser l'URL interne pour les appels serveur-à-serveur
+        // mais garder l'URL publique pour les redirections navigateur
+        const correctedMetadata = {
+            ...issuer.metadata,
+            // Endpoints serveur-à-serveur (utiliser URL interne Docker)
+            token_endpoint: issuer.metadata.token_endpoint.replace(keycloakPublicUrl, keycloakInternalUrl),
+            userinfo_endpoint: issuer.metadata.userinfo_endpoint.replace(keycloakPublicUrl, keycloakInternalUrl),
+            revocation_endpoint: issuer.metadata.revocation_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
+            introspection_endpoint: issuer.metadata.introspection_endpoint?.replace(keycloakPublicUrl, keycloakInternalUrl),
+            jwks_uri: issuer.metadata.jwks_uri?.replace(keycloakPublicUrl, keycloakInternalUrl),
+            // Endpoints pour redirections navigateur (garder URL publique)
+            authorization_endpoint: issuer.metadata.authorization_endpoint,
+            end_session_endpoint: issuer.metadata.end_session_endpoint, // Logout = redirect navigateur
+            registration_endpoint: issuer.metadata.registration_endpoint
+        };
+
+        console.log('Endpoints corrigés:');
+        console.log('   - Token endpoint:', correctedMetadata.token_endpoint);
+        console.log('   - Userinfo endpoint:', correctedMetadata.userinfo_endpoint);
+        console.log('   - Authorization endpoint:', correctedMetadata.authorization_endpoint);
+
+        // Créer un nouvel Issuer avec les métadonnées corrigées
+        const correctedIssuer = new Issuer(correctedMetadata);
+
+        const keycloakClient = new correctedIssuer.Client({
             client_id: clientId,
             client_secret: clientSecret,
             redirect_uris: [redirectUri],
@@ -31,6 +56,7 @@ async function initializeKeycloak() {
         console.log('Client OpenID Connect initialisé');
         console.log('Configuration:');
         console.log('   - URL interne:', keycloakInternalUrl);
+        console.log('   - URL publique:', keycloakPublicUrl);
         console.log('   - Client ID:', clientId);
         console.log('   - Redirect URI:', redirectUri);
         console.log('');
