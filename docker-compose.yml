@@ -58,7 +58,7 @@ services:
 
       REALM: projetcis
       CLIENT_ID: webapp
-      CLIENT_SECRET: webapp-client-secret-123
+      CLIENT_SECRET: PD8PjEIoT2eudb9ZNLXUcK4lmrKxwsCQ
       REDIRECT_URI: https://localhost:3000/auth/callback
       SESSION_SECRET: cis-project-secret
       NODE_EXTRA_CA_CERTS: /app/certs/localhost+2.pem
